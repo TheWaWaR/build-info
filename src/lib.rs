@@ -110,17 +110,11 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
         ((ver.major, ver.minor, ver.patch), pre, ver_meta.commit_date)
     };
 
-    let version_string = descr_dirty
-        .clone()
-        .unwrap_or_else(|| {
-            let branch_string = branch
-                .clone()
-                .unwrap_or_else(|| "unknown".to_owned());
-            let commit_id_string = commit_id
-                .clone()
-                .unwrap_or_else(|| "unknown".to_owned());
-            format!("{}-{:.8}", branch_string, commit_id_string)
-        });
+    let version_string = descr_dirty.clone().unwrap_or_else(|| {
+        let branch_string = branch.clone().unwrap_or_else(|| "unknown".to_owned());
+        let commit_id_string = commit_id.clone().unwrap_or_else(|| "unknown".to_owned());
+        format!("{}-{:.8}", branch_string, commit_id_string)
+    });
     let pre_str = pre.as_ref().map(|x| &**x).unwrap_or("unknown");
     let commit_date_str = commit_date.as_ref().map(|x| &**x).unwrap_or("unknown");
     let rustc_str = format!(
@@ -136,7 +130,9 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
         version = version_string,
         rustc = rustc_str,
         logo = ASCII_LOGO,
-    ).replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
+    ).replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n");
     let code = format!(
         "
         pub fn get_build_info_str(short: bool) -> &'static str {{
@@ -156,7 +152,16 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
            ({:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?})
         }}
     ",
-        version_string, info_str, ASCII_LOGO, descr_dirty, tag, branch, commit_id, version, pre, commit_date
+        version_string,
+        info_str,
+        ASCII_LOGO,
+        descr_dirty,
+        tag,
+        branch,
+        commit_id,
+        version,
+        pre,
+        commit_date
     );
     f.write_all(code.as_bytes()).unwrap();
 }
