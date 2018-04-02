@@ -1,45 +1,32 @@
-
-extern crate rustc_version;
 extern crate git2;
+extern crate rustc_version;
 
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 
-use git2::{
-    Repository,
-    ErrorCode,
-    DescribeOptions,
-    DescribeFormatOptions,
-};
-
+use git2::{DescribeFormatOptions, DescribeOptions, ErrorCode, Repository};
 
 /// Get the commit ID of this repository
 fn get_commit_id(repo: &Repository) -> Option<String> {
     repo.revparse("HEAD")
-        .map(|revspec| {
-            revspec
-                .from()
-                .map(|obj| format!("{}", obj.id()))
-        })
+        .map(|revspec| revspec.from().map(|obj| format!("{}", obj.id())))
         .unwrap_or(None)
 }
-
 
 /// Get the branch name of this repository
 fn get_branch(repo: &Repository) -> Option<String> {
     let head = match repo.head() {
         Ok(head) => Some(head),
-        Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
-            e.code() == ErrorCode::NotFound => None,
+        Err(ref e) if e.code() == ErrorCode::UnbornBranch || e.code() == ErrorCode::NotFound => {
+            None
+        }
         Err(_) => return None,
     };
-    head
-        .as_ref()
+    head.as_ref()
         .and_then(|h| h.shorthand())
         .map(|v| v.to_owned())
 }
-
 
 /// [Command]:
 ///   * git describe --abbrev=0 --tags
@@ -61,7 +48,6 @@ fn get_describe(repo: &Repository, dirty: Option<&str>) -> Option<String> {
         .unwrap_or(None)
 }
 
-
 fn get_latest_tag(repo: &Repository) -> Option<String> {
     get_describe(repo, None)
 }
@@ -78,15 +64,13 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
             get_branch(&repo),
             get_commit_id(&repo),
         ),
-        Err(_) => (None, None, None, None)
+        Err(_) => (None, None, None, None),
     };
 
     let (version, pre, commit_date) = {
         let ver_meta = rustc_version::version_meta().unwrap();
         let ver = &ver_meta.semver;
-        let pre = ver.pre
-            .get(0)
-            .map(|id| format!("{}", id));
+        let pre = ver.pre.get(0).map(|id| format!("{}", id));
         ((ver.major, ver.minor, ver.patch), pre, ver_meta.commit_date)
     };
 
@@ -97,24 +81,25 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
     let commit_date_str = commit_date.as_ref().map(|x| &**x).unwrap_or("unknown");
     let rustc_str = format!(
         "(rustc {major}.{minor}.{patch}-{pre}-{commit_date})",
-        major=version.0,
-        minor=version.1,
-        patch=version.2,
-        pre=pre_str,
-        commit_date=commit_date_str,
+        major = version.0,
+        minor = version.1,
+        patch = version.2,
+        pre = pre_str,
+        commit_date = commit_date_str,
     );
     let info_str = format!(
         "{branch}-{commit_id:.7} {rustc}",
-        branch=branch_str,
-        commit_id=commit_id_str,
-        rustc=rustc_str
+        branch = branch_str,
+        commit_id = commit_id_str,
+        rustc = rustc_str
     ).replace("\"", "\\\"");
     let info_dirty_str = format!(
         "{descr_dirty} {rustc}",
-        descr_dirty=descr_dirty_str,
-        rustc=rustc_str
+        descr_dirty = descr_dirty_str,
+        rustc = rustc_str
     ).replace("\"", "\\\"");
-    let code = format!("
+    let code = format!(
+        "
         pub fn get_build_info_str(dirty: bool) -> &'static str {{
             if dirty {{ \"{}\" }} else {{ \"{}\" }}
         }}
@@ -130,6 +115,8 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
         ) {{
            ({:?}, {:?}, {:?}, {:?}, {:?}, {:?}, {:?})
         }}
-    ", info_dirty_str, info_str, descr_dirty, tag, branch, commit_id, version, pre, commit_date);
+    ",
+        info_dirty_str, info_str, descr_dirty, tag, branch, commit_id, version, pre, commit_date
+    );
     f.write_all(code.as_bytes()).unwrap();
 }
