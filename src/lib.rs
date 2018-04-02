@@ -61,7 +61,7 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
     let dest_path = Path::new(&out_dir).join(dest_name);
     let mut f = File::create(&dest_path).unwrap();
 
-    let (tag, branch, commit_id) = match Repository::open(".") {
+    let (tag, branch, commit_id) = match Repository::discover(".") {
         Ok(repo) => (
             get_latest_tag(&repo),
             get_branch(&repo),
@@ -105,4 +105,3 @@ pub fn gen_build_info(out_dir: &str, dest_name: &str) {
     ", info_str, tag, branch, commit_id, version, pre, commit_date);
     f.write_all(code.as_bytes()).unwrap();
 }
-
